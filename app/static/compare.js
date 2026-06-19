@@ -83,6 +83,7 @@ animate();
 window.addEventListener("resize", () => viewers.forEach(resize));
 
 const COLORS = { stability: 0xe07a5f, balanced: 0x69b48f, comfort: 0x5b8def };
+let sourceMap = {}; // key -> {label, doi, url}, populated per response
 
 function metricRow(label, value, sub) {
   return `<div class="m"><span>${label}</span><b>${value}</b>${sub || ""}</div>`;
@@ -135,6 +136,20 @@ function renderCard(c) {
       <ul class="pro">${c.pros.map((x) => `<li>${x}</li>`).join("")}</ul>
       <ul class="con">${c.cons.map((x) => `<li>${x}</li>`).join("")}</ul>
     </div>
+    <details class="grounded">
+      <summary>Why this design — grounded <span class="vbadge">✓ evidence</span></summary>
+      <ul>
+        ${(c.grounding || [])
+          .map((g) => {
+            const s = sourceMap[g.source];
+            const cite = s
+              ? ` <a href="${s.doi ? "https://doi.org/" + s.doi : s.url}" target="_blank" rel="noopener">[${g.source}]</a>`
+              : "";
+            return `<li>${g.text}${cite}</li>`;
+          })
+          .join("")}
+      </ul>
+    </details>
     <div class="actions">
       <a class="dl" href="${c.stl_url}" download>⬇ Download STL</a>
       <button class="log">Operation history (${c.processlog.entries.length})</button>
@@ -204,6 +219,10 @@ async function run() {
       `<strong>Scan:</strong> ${data.scan.source} (${data.scan.version}), ` +
       `${data.scan.length_mm} mm, ${data.scan.n_vertices.toLocaleString()} vertices · ` +
       `<strong>Detected intent:</strong> ${intents}`;
+
+    // Build the source lookup so per-design grounding can deep-link to papers.
+    sourceMap = {};
+    for (const s of data.sources || []) sourceMap[s.key] = s;
 
     // Sources & grounding panel (collapsible).
     const srcEl = $("#sources");

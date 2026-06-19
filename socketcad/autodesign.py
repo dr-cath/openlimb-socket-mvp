@@ -30,6 +30,7 @@ class Candidate:
     pros: List[str]               # trade-off: what this design is good at
     cons: List[str]               # trade-off: what you give up
     spec: RectificationSpec
+    grounding: List[dict] = field(default_factory=list)  # design-specific evidence
 
 
 # Keyword -> (human reason, effect tags). Effects are applied in build_candidates.
@@ -136,6 +137,15 @@ def build_candidates(prompt: str = "", is_left_limb: bool = True):
                   "Good for new / oedematous / fragile limbs"],
             cons=["Higher local pressures", "Less total-contact feel"],
             spec=stability,
+            grounding=[
+                {"text": "PTB applies larger local rectifications "
+                         "(lateral-paratibial carve p<0.001; distal-end build p<0.05).",
+                 "source": "dickinson2024"},
+                {"text": "Fibular head offloaded with a build; FH build correlates "
+                         "with volume reduction (ρ=0.38).", "source": "dickinson2024"},
+                {"text": "A few-mm carve/relief magnitudes are clinically plausible.",
+                 "source": "convery2003"},
+            ],
         ),
         Candidate(
             key="balanced",
@@ -145,6 +155,12 @@ def build_candidates(prompt: str = "", is_left_limb: bool = True):
             pros=["Compromise of security and comfort", "Versatile default"],
             cons=["Master of neither extreme"],
             spec=balanced,
+            grounding=[
+                {"text": "Real socket designs lie on a PTB↔TSB spectrum; most are "
+                         "hybrids rather than pure types.", "source": "dickinson2024"},
+                {"text": "Moderate volume reduction with moderate local shaping sits "
+                         "mid-spectrum.", "source": "dickinson2024"},
+            ],
         ),
         Candidate(
             key="comfort",
@@ -154,6 +170,27 @@ def build_candidates(prompt: str = "", is_left_limb: bool = True):
             pros=["Even, total-contact pressure", "Suits mature limbs / active users"],
             cons=["Needs a good liner & stable volume", "Less focal offloading"],
             spec=comfort,
+            grounding=[
+                {"text": "TSB uses a significantly larger gross volume reduction than "
+                         "PTB (p<0.05).", "source": "dickinson2024"},
+                {"text": "Local rectifications are smaller; a larger distal-end "
+                         "elongation accommodates soft tissue compressed by high "
+                         "volume reduction.", "source": "dickinson2024"},
+            ],
         ),
     ]
+
+    # Intent-driven grounding shared by all candidates (only when triggered).
+    extra = []
+    if sensitive:
+        extra.append({"text": "Named reliefs deepened for sensitive/bony/neuroma "
+                              "sites — person-specific offloading a 3D scan alone "
+                              "cannot infer.", "source": "dickinson2024"})
+    if leans_fragile:
+        extra.append({"text": "Looser fit and extra distal relief for new / "
+                              "oedematous / dysvascular limbs early in rehab.",
+                      "source": "dickinson2024"})
+    for c in candidates:
+        c.grounding = c.grounding + extra
+
     return candidates, intents

@@ -144,6 +144,7 @@ async def api_autodesign(request: Request):
             "summary": cand.summary,
             "pros": cand.pros,
             "cons": cand.cons,
+            "grounding": cand.grounding,
             "socket_glb": socket_glb,
             "heatmap_glb": heatmap_glb,
             "heatmap_vmax_mm": round(float(vmax), 1),

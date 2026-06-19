@@ -121,6 +121,12 @@ button.primary:disabled { background: #b9bce0; cursor: progress; box-shadow: non
 .proscons .pro li::marker { content: "✓ "; color: #16a34a; }
 .proscons .con li::marker { content: "– "; color: #dc2626; }
 
+.grounded { padding: .2rem .95rem .4rem; font-size: .8rem; }
+.grounded summary { cursor: pointer; font-weight: 600; color: #166534; }
+.grounded ul { margin: .3rem 0 0; padding-left: 1.1rem; color: var(--muted); }
+.grounded li { margin-bottom: .3rem; }
+.grounded a { color: var(--accent); text-decoration: none; font-weight: 600; }
+
 .actions { padding: .65rem .95rem; margin-top: auto; display: flex; gap: .5rem; align-items: center; }
 .actions a.dl { background: linear-gradient(90deg, #16a34a, #22c55e); color: #fff; text-decoration: none;
   padding: .5rem .85rem; border-radius: 10px; font-weight: 700; font-size: .85rem; }
