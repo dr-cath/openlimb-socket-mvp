@@ -52,7 +52,22 @@ python scripts/demo.py
 
 # the interactive web app:
 uvicorn app.main:app --reload      # open http://127.0.0.1:8000
+#   /          single-design intent -> preview -> approve -> export loop
+#   /compare   prompt + scan -> AUTO-DESIGN 3 candidate sockets, shown side by
+#              side with trade-offs and a Mimics/ScanIP-style operation history
 ```
+
+### Auto-design & compare (`/compare`)
+
+The visual demo of the whole workflow: type the clinical intent in plain language
+(e.g. *"new amputee, oedema, sensitive bony spur"*), pick a scan, and the engine
+auto-designs **three candidate sockets** spanning *stability (PTB) ↔ comfort (TSB)*.
+Each is shown in its own 3D viewer with its trade-offs (volume reduction, snugness,
+wall thickness, printability) a downloadable STL, and a full **operation history**
+— an ordered, auditable list of every step the engine applied to the mesh, in the
+style of clinical 3D tools (Materialise Mimics / Simpleware ScanIP). The mapping
+from prompt to designs is transparent and rule-based (`socketcad/autodesign.py`),
+and the history is reconstructed faithfully from the pipeline (`socketcad/processlog.py`).
 
 Dump sampled limbs for eyeballing:
 

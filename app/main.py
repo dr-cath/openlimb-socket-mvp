@@ -26,9 +26,11 @@ from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from socketcad.autodesign import build_candidates
 from socketcad.geometry import estimate_frame
 from socketcad.limb_source import estimate_landmarks, load_limb_mesh, sample_limb
 from socketcad.pipeline import run_pipeline
+from socketcad.processlog import build_process_log
 from socketcad.spec import spec_from_dict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -54,9 +56,99 @@ def _serve_mesh(mesh: trimesh.Trimesh, name: str) -> str:
     return f"/files/{name}.ply"
 
 
+def _serve_glb(mesh: trimesh.Trimesh, name: str) -> str:
+    path = os.path.join(OUT, f"{name}.glb")
+    mesh.export(path)
+    return f"/files/{name}.glb"
+
+
 @app.get("/")
 def index():
     return FileResponse(os.path.join(STATIC, "index.html"))
+
+
+@app.get("/compare")
+def compare_page():
+    return FileResponse(os.path.join(STATIC, "compare.html"))
+
+
+@app.post("/api/autodesign")
+async def api_autodesign(request: Request):
+    """Prompt + scan -> auto-design 3 candidate sockets with trade-offs.
+
+    Each candidate is fully built (rectify -> socketize -> validate), exported as
+    GLB (for the viewer) and STL (for download), and accompanied by a
+    Mimics/ScanIP-style operation history.
+    """
+    body = await request.json()
+    prompt = body.get("prompt", "")
+    is_left = bool(body.get("is_left_limb", True))
+
+    # Use the loaded scan if present, otherwise sample a limb (default: mean).
+    if SESSION.get("limb") is None:
+        shape = body.get("shape", "mean")
+        mesh, info = sample_limb(shape, seed=body.get("seed"))
+        frame = estimate_frame(mesh, is_left=is_left)
+        SESSION.update(limb=mesh, frame=frame, info=info)
+    else:
+        mesh, info = SESSION["limb"], SESSION["info"]
+        frame = SESSION["frame"]
+
+    candidates, intents = build_candidates(prompt, is_left_limb=is_left)
+    _log("autodesign", {"prompt": prompt, "intents": intents,
+                        "source": info.get("source")})
+
+    results = []
+    for cand in candidates:
+        pr = run_pipeline(mesh, cand.spec, out_dir=OUT,
+                          basename=f"cmp_{cand.key}", make_heatmap=True)
+        socket_glb = _serve_glb(pr.socket.socket, f"cmp_{cand.key}_socket")
+        plog = build_process_log(info, pr.rectify, pr.socket, pr.validation,
+                                 cand.spec, title=cand.title, prompt=prompt,
+                                 intents=intents)
+        # Persist the operation history alongside the meshes.
+        with open(os.path.join(OUT, f"cmp_{cand.key}_processlog.txt"), "w") as f:
+            f.write(plog.to_text())
+
+        wt = pr.validation.metrics.get("wall_thickness_mm", {})
+        rsum = pr.rectify.summary()
+        ssum = pr.socket.summary()
+        results.append({
+            "key": cand.key,
+            "title": cand.title,
+            "summary": cand.summary,
+            "pros": cand.pros,
+            "cons": cand.cons,
+            "socket_glb": socket_glb,
+            "stl_url": "/files/" + os.path.basename(pr.exports["socket_stl"]),
+            "metrics": {
+                "philosophy": cand.spec.philosophy,
+                "snugness": round(cand.spec.snugness, 2),
+                "volume_reduction_pct": round(cand.spec.volume_reduction_pct(), 1),
+                "max_carve_mm": round(rsum["max_carve_mm"], 1),
+                "max_relief_mm": round(rsum["max_relief_mm"], 1),
+                "wall_mean_mm": round(wt.get("mean", float("nan")), 1) if wt else None,
+                "wall_in_tol_pct": round(
+                    pr.validation.metrics.get("wall_thickness_frac_in_tol", 0) * 100),
+                "socket_volume_cm3": round(ssum.get("socket_volume_cm3", float("nan"))),
+                "printable": bool(ssum["is_volume"]),
+                "validation_passed": bool(pr.validation.passed),
+            },
+            "processlog": plog.as_dict(),
+        })
+
+    return {
+        "prompt": prompt,
+        "intents": intents,
+        "scan": {
+            "source": info.get("source"),
+            "version": info.get("version", "n/a"),
+            "length_mm": round(float(frame.height)),
+            "n_vertices": int(len(mesh.vertices)),
+            "limb_glb": _serve_glb(mesh, "cmp_limb"),
+        },
+        "candidates": results,
+    }
 
 
 @app.post("/api/sample")

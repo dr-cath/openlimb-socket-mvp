@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenLimb Socket MVP — Auto-design &amp; Compare</title>
+<link rel="stylesheet" href="/static/style.css" />
+<link rel="stylesheet" href="/static/compare.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<header>
+  <h1>OpenLimb Socket MVP — Auto-design &amp; Compare</h1>
+  <p class="tagline">Type the clinical intent, pick a scan, and the engine
+     auto-designs three candidate sockets spanning <em>stability&nbsp;↔&nbsp;comfort</em>,
+     each with its trade-offs and a full operation history.</p>
+</header>
+
+<section class="intake">
+  <div class="field">
+    <label for="prompt">1 · Clinical intent (plain language)</label>
+    <textarea id="prompt" rows="3"
+      placeholder="e.g. New transtibial amputee, dysvascular, some oedema, sensitive bony spur anterolaterally, low activity early in rehab."></textarea>
+    <div class="examples">
+      Try:
+      <button class="ex" data-ex="Active K3 user, mature stable limb, wants comfortable total-contact fit">active / comfort</button>
+      <button class="ex" data-ex="New amputee, dysvascular, oedema, sensitive distal end">new / fragile</button>
+      <button class="ex" data-ex="Bony fibular head and a painful neuroma, needs focal relief">sensitive / focal</button>
+    </div>
+  </div>
+  <div class="field narrow">
+    <label for="scan">2 · Scan source</label>
+    <select id="scan">
+      <option value="mean">OpenLimbTT mean limb</option>
+      <option value="random">OpenLimbTT random sample</option>
+      <option value="synthetic">Synthetic limb (offline)</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="isleft" checked /> Left limb</label>
+    <button id="run" class="primary">Auto-design ▶</button>
+    <div id="status" class="status"></div>
+  </div>
+</section>
+
+<section id="scaninfo" class="scaninfo hidden"></section>
+
+<section id="cards" class="cards"></section>
+
+<footer>
+  ⚠️ Research/demo prototype — <strong>NOT a cleared medical device</strong>. No
+  claims of clinical accuracy, fit, or safety. Rule-based auto-design and heuristic
+  landmarks; defaults are literature-grounded (see <code>docs/SOURCES.md</code>).
+  The attachment boss is a non-engineered placeholder.
+</footer>
+
+<script type="module" src="/static/compare.js"></script>
+</body>
+</html>
