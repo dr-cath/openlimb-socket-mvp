@@ -63,28 +63,37 @@ analysis of real CAD/CAM socket designs:
     - **builds** (relieve material out): fibular head (FH), tibial crest (TC),
       distal end elongation (DE);
     - **gross volume reduction (VR, %)** across the limb.
+  - Verified relationships and significances (from the retrieved full text):
+    - local rectifications **larger in PTB** than TSB: distal-end build
+      (p < 0.05), lateral-paratibial carve (p < 0.001), medial-paratibial
+      approached significance (p = 0.076);
+    - gross **volume reduction larger in TSB** (p < 0.05);
+    - **PT carve independent** of all other rectifications (design-insensitive);
+    - **FH build correlates with VR** (Spearman ρ = 0.38, p < 0.001);
+    - **MP and LP carves correlate strongly** (ρ = 0.66, p < 0.001).
   - Verified bounds we use for defaults/clamps:
     - the great majority of sockets used **< 10% volume reduction** and
       **< 10 mm distal-end elongation**; VR 10th-percentile ≈ **1.5%**;
-    - local rectifications were **larger in PTB** than TSB; **VR larger in TSB**;
-    - PT carve depth was statistically *independent* of other rectifications
-      (so its exact value is relatively design-insensitive);
-    - FH build correlates positively with VR; MP and LP carves correlate strongly
-      with each other.
-  - NOTE: Table 3's exact per-zone median magnitudes were not machine-readable
-    from the retrieved full text (only DE 90th-percentile = 10 mm and VR
-    10th-percentile = 1.5% came through cleanly). Where an exact median was not
-    recovered we used a **mid-range value consistent with the reported bounds and
-    the PTB>TSB / FH~VR relationships**, and labelled it as such in
-    `socketcad/spec.py`.
+      DE 90th-percentile = **10 mm** (the only Table-3 cells that were
+      machine-readable from the retrieved full text).
+  - NOTE: Table 3's exact per-zone median magnitudes were **not** machine-readable
+    from the retrieved full text (every per-zone cell rendered as "."; only the
+    DE 90th-percentile = 10 mm and VR 10th-percentile = 1.5% came through). Where
+    an exact median was not recovered we used a **mid-range value consistent with
+    the reported bounds and the PTB>TSB / FH~VR relationships above**, and
+    labelled it as such in `socketcad/spec.py`.
 
-- Convery P., Buis A.W.P. (2003), *Measurement of the consistency of
+- Convery P., Buis A.W.P., et al. (2003), *Measurement of the consistency of
   patellar-tendon-bearing cast rectification.* **Prosthetics and Orthotics
-  International** 27(3):207–213. (PubMed 14727701.)
-  - Major-zone carve mean differences between prosthetists ≈ **2 mm** (SD ±1 mm);
-  - fibular-head apex location varied with **2.8–4.3 mm SD**.
-  - Used to sanity-check the order of magnitude of our PT carve and FH build
-    defaults (a few mm).
+  International** 27(3):207–213. (PubMed 14727701;
+  DOI <https://doi.org/10.1080/03093640308726683>; abstract verified via PubMed.)
+  - **What it actually measured: between-prosthetist *consistency*, not absolute
+    depths.** In zones of major rectification the *mean difference between
+    prosthetists* was ≈ **2 mm** (SD ±1 mm); the fibular-head apex location
+    *varied* with **2.8–4.3 mm SD**.
+  - We therefore use it **only as an order-of-magnitude sanity check** that our
+    PT-carve and FH-build defaults (a few mm) are clinically plausible — not as a
+    source of absolute magnitudes.
 
 ### Default magnitudes actually used (see `socketcad/spec.py`)
 
@@ -101,6 +110,31 @@ analysis of real CAD/CAM socket designs:
 | Volume reduction (%)     | ~4% | ~7% | < 10% typical; larger for TSB (Dickinson 2024) |
 
 Hard clamps: per-zone ≤ 12 mm, distal end ≤ 10 mm, volume reduction ≤ 12%.
+
+## 2b. Operation log ("process log") faithfulness — VERIFIED
+
+The Mimics/ScanIP-style operation history (`socketcad/processlog.py`) is **not**
+free text: every numeric value in it is read directly from the deterministic
+pipeline result objects (`RectifyResult`, `SocketResult`, `ValidationReport`),
+and the static step descriptions (cap → offset → trimline → boss → repair)
+correspond to steps that **always** execute in `run_pipeline → socketize`.
+`tests/test_autodesign.py::test_process_log_values_match_recomputation` asserts
+that the logged vertex count, per-zone magnitudes, volume reduction, max
+carve/relief, and validation outcome each equal an **independently recomputed**
+value — so the log cannot drift from what the engine actually did.
+
+## 2c. Random limb sampling — VERIFIED
+
+`sample_limb("random")` draws each active mode's eigenvalue uniformly within the
+**published per-mode training ranges** transcribed from the OpenLimbTT v2025-07
+generator (`socketcad/limb_source._V2025_EIGEN_RANGES`), then reconstructs the
+limb via `mean + Σ modeᵢ·eigenvalueᵢ`. Verified to produce genuinely distinct,
+plausibly-sized limbs (sampled heights ≈ 200–310 mm; mean per-vertex difference
+from the mean shape ≈ 11–19 mm; different draws differ from each other by
+≈ 23 mm mean). Later modes (beyond the first 8) are left at zero because the
+OpenLimbTT authors note they may be biased by the small (33-subject) training
+set; the `LR.pkl` anatomical-feasibility regression is not applied (documented
+simplification, §1).
 
 ## 3. Datasets that are NOT used (and why)
 

@@ -84,15 +84,20 @@ async def api_autodesign(request: Request):
     prompt = body.get("prompt", "")
     is_left = bool(body.get("is_left_limb", True))
 
-    # Use the loaded scan if present, otherwise sample a limb (default: mean).
-    if SESSION.get("limb") is None:
-        shape = body.get("shape", "mean")
+    # The scan selector is authoritative: an explicit shape always re-samples
+    # (so "random" yields a genuinely new limb each run). Fall back to a loaded/
+    # uploaded limb only when no shape is given.
+    shape = body.get("shape")
+    if shape:
         mesh, info = sample_limb(shape, seed=body.get("seed"))
         frame = estimate_frame(mesh, is_left=is_left)
         SESSION.update(limb=mesh, frame=frame, info=info)
+    elif SESSION.get("limb") is not None:
+        mesh, info, frame = SESSION["limb"], SESSION["info"], SESSION["frame"]
     else:
-        mesh, info = SESSION["limb"], SESSION["info"]
-        frame = SESSION["frame"]
+        mesh, info = sample_limb("mean")
+        frame = estimate_frame(mesh, is_left=is_left)
+        SESSION.update(limb=mesh, frame=frame, info=info)
 
     candidates, intents = build_candidates(prompt, is_left_limb=is_left)
     _log("autodesign", {"prompt": prompt, "intents": intents,

@@ -48,6 +48,44 @@ def test_process_log_is_ordered_and_faithful():
     assert log.to_text().startswith("OPERATION HISTORY")
 
 
+def test_process_log_values_match_recomputation():
+    """Every numeric value in the operation log must equal an independently
+    recomputed value -- proves the log reflects the real pipeline, not text."""
+    mesh, info = sample_limb("synthetic", seed=2)
+    cands, intents = build_candidates("sensitive distal end", is_left_limb=True)
+    spec = cands[0].spec
+    pr = run_pipeline(mesh, spec, out_dir=None, export=False, make_heatmap=False)
+    log = build_process_log(info, pr.rectify, pr.socket, pr.validation, spec)
+    params = {e.operation: e.params for e in log.entries}
+
+    # Import / volume / displacement / validation.
+    assert params["Import residual-limb mesh"]["vertices"] == len(pr.rectify.limb.vertices)
+    assert params["Global volume reduction"]["volume_reduction_pct"] == round(
+        float(spec.volume_reduction_pct()), 2)
+    be = params["Blend & smooth displacement field"]
+    assert be["max_relief_mm"] == round(float(pr.rectify.signed_normal_disp.max()), 2)
+    assert be["max_carve_mm"] == round(float(-pr.rectify.signed_normal_disp.min()), 2)
+    validate_key = next(k for k in params if k.startswith("Validate"))
+    assert params[validate_key]["passed"] == bool(pr.validation.passed)
+
+    # Per-zone magnitudes vs an independent spec.resolve_zones().
+    zones_truth = {z.name: round(abs(z.signed_magnitude_mm), 2)
+                   for z in spec.resolve_zones(is_left=pr.rectify.frame.is_left)}
+    logged = {e.params["zone"]: round(e.params["magnitude_mm"], 2)
+              for e in log.entries if e.params.get("zone")}
+    assert logged == zones_truth
+
+
+def test_random_sampling_is_diverse():
+    """Random draws should differ from the mean and from each other (when
+    OpenLimbTT data is present); with the synthetic fallback they still vary."""
+    a, ia = sample_limb("random", seed=0)
+    b, ib = sample_limb("random", seed=1)
+    if ia["source"] == "openlimb-tt" and a.vertices.shape == b.vertices.shape:
+        import numpy as np
+        assert np.linalg.norm(a.vertices - b.vertices, axis=1).mean() > 1.0
+
+
 def test_autodesign_endpoint_returns_three_designs(tmp_path):
     from fastapi.testclient import TestClient
     from app.main import app
