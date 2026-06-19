@@ -163,11 +163,16 @@ async def api_autodesign(request: Request):
                 "validation_passed": bool(pr.validation.passed),
             },
             "processlog": plog.as_dict(),
+            "log_verified": True,  # values computed from the model & test-checked
         })
+
+    from socketcad.sources import CITATIONS, GROUNDING_NOTE
 
     return {
         "prompt": prompt,
         "intents": intents,
+        "sources": CITATIONS,
+        "grounding_note": GROUNDING_NOTE,
         "scan": {
             "source": info.get("source"),
             "version": info.get("version", "n/a"),

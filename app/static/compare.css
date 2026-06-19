@@ -58,6 +58,22 @@ button.primary:disabled { background: #b9bce0; cursor: progress; box-shadow: non
 .scaninfo .intent { display: inline-block; background: #eef2ff; border: 1px solid #dfe3ff;
   color: #3b3f8f; border-radius: 999px; padding: .08rem .55rem; margin: 0 .2rem; font-size: .8rem; }
 
+/* Sources & grounding panel */
+.sources { margin: 0 0 1.2rem; }
+.sources details { background: #fff; border: 1px solid var(--line); border-left: 5px solid #16a34a;
+  border-radius: 10px; padding: .6rem .9rem; box-shadow: 0 6px 18px -14px rgba(22,163,74,.5); }
+.sources summary { font-weight: 700; cursor: pointer; }
+.sources .note { color: var(--muted); font-size: .85rem; margin: .5rem 0 .4rem; }
+.sources ul { margin: .3rem 0 0; padding-left: 1.1rem; font-size: .85rem; }
+.sources li { margin-bottom: .5rem; }
+.sources a { color: var(--accent); }
+.sources .grounds { color: var(--muted); font-size: .8rem; }
+
+/* "verified / computed from model" badges */
+.vbadge { display: inline-block; font-size: .7rem; font-weight: 700; color: #166534;
+  background: #dcfce7; border: 1px solid #bbf7d0; border-radius: 999px; padding: .08rem .5rem;
+  vertical-align: middle; cursor: help; }
+
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem; }
 .card {
   border: 1px solid var(--line); border-radius: 16px; overflow: hidden;

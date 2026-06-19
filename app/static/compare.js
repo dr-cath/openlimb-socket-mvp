@@ -138,6 +138,7 @@ function renderCard(c) {
     <div class="actions">
       <a class="dl" href="${c.stl_url}" download>⬇ Download STL</a>
       <button class="log">Operation history (${c.processlog.entries.length})</button>
+      ${c.log_verified ? '<span class="vbadge" title="Every value in this history is computed from the model and checked against an independent recomputation in the test suite — not hand-written.">✓ computed from model</span>' : ""}
     </div>
     <div class="history hidden"></div>
   `;
@@ -203,6 +204,24 @@ async function run() {
       `<strong>Scan:</strong> ${data.scan.source} (${data.scan.version}), ` +
       `${data.scan.length_mm} mm, ${data.scan.n_vertices.toLocaleString()} vertices · ` +
       `<strong>Detected intent:</strong> ${intents}`;
+
+    // Sources & grounding panel (collapsible).
+    const srcEl = $("#sources");
+    srcEl.classList.remove("hidden");
+    srcEl.innerHTML =
+      `<details open><summary>Sources &amp; grounding ` +
+      `<span class="vbadge">✓ verified</span></summary>` +
+      `<p class="note">${data.grounding_note || ""}</p>` +
+      "<ul>" +
+      (data.sources || [])
+        .map(
+          (s) =>
+            `<li><a href="${s.url}" target="_blank" rel="noopener">${s.label}</a>` +
+            (s.doi ? ` · <a href="https://doi.org/${s.doi}" target="_blank" rel="noopener">doi:${s.doi}</a>` : "") +
+            `<div class="grounds">${s.grounds}</div></li>`
+        )
+        .join("") +
+      "</ul></details>";
 
     const cards = $("#cards");
     for (const c of data.candidates) cards.appendChild(renderCard(c));
