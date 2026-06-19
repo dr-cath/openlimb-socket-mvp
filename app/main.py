@@ -98,11 +98,31 @@ async def api_autodesign(request: Request):
     _log("autodesign", {"prompt": prompt, "intents": intents,
                         "source": info.get("source")})
 
+    from socketcad.processlog import _ZONE_NAMES
+    from socketcad.validate import colorize_displacement
+
     results = []
     for cand in candidates:
         pr = run_pipeline(mesh, cand.spec, out_dir=OUT,
                           basename=f"cmp_{cand.key}", make_heatmap=True)
         socket_glb = _serve_glb(pr.socket.socket, f"cmp_{cand.key}_socket")
+
+        # Heatmap on the prosthesis: vertex-coloured rectified positive
+        # (blue = carved in / loaded, red = relieved out). This *is* the
+        # trade-off made visible -- where and how much material was moved.
+        vmax = pr.heatmap.get("vmax_mm") or 1.0
+        heat_mesh = colorize_displacement(pr.rectify.rectified,
+                                          pr.rectify.signed_normal_disp, vmax=vmax)
+        heatmap_glb = _serve_glb(heat_mesh, f"cmp_{cand.key}_heatmap")
+
+        # Per-zone trade-off annotations (what was carved/relieved, in mm).
+        annotations = [
+            {"zone": _ZONE_NAMES.get(z.name, z.name),
+             "action": "carve" if z.signed_magnitude_mm < 0 else "relief",
+             "mm": round(abs(z.signed_magnitude_mm), 1)}
+            for z in pr.rectify.zones
+        ]
+
         plog = build_process_log(info, pr.rectify, pr.socket, pr.validation,
                                  cand.spec, title=cand.title, prompt=prompt,
                                  intents=intents)
@@ -120,6 +140,9 @@ async def api_autodesign(request: Request):
             "pros": cand.pros,
             "cons": cand.cons,
             "socket_glb": socket_glb,
+            "heatmap_glb": heatmap_glb,
+            "heatmap_vmax_mm": round(float(vmax), 1),
+            "annotations": annotations,
             "stl_url": "/files/" + os.path.basename(pr.exports["socket_stl"]),
             "metrics": {
                 "philosophy": cand.spec.philosophy,

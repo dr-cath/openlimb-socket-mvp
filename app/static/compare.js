@@ -1,61 +1,74 @@
 // Auto-design & compare: prompt + scan -> 3 candidate sockets with trade-offs,
-// each in its own live 3D viewer, plus a Mimics/ScanIP-style operation history.
+// each in a live 3D viewer that toggles between the solid socket and a
+// rectification HEATMAP on the prosthesis (blue = carved in / loaded,
+// red = relieved out) — the trade-off made visible.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const $ = (s) => document.querySelector(s);
 const loader = new GLTFLoader();
-const viewers = []; // keep references so resize/animate keeps working
+const viewers = [];
 
 function makeViewer(canvas) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio);
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0e1116);
+  const scene = new THREE.Scene(); // transparent -> CSS gradient shows through
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x333344, 1.1));
-  const key = new THREE.DirectionalLight(0xffffff, 1.4);
-  key.position.set(1, 1, 1);
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 1.1;
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xbcd3ff, 1.25));
+  const key = new THREE.DirectionalLight(0xffffff, 1.5);
+  key.position.set(1, 1.2, 1);
   scene.add(key);
-  const v = { renderer, scene, camera, controls, canvas, model: null };
+  const fill = new THREE.DirectionalLight(0xeaf2ff, 0.6);
+  fill.position.set(-1, -0.5, -1);
+  scene.add(fill);
+  const v = { renderer, scene, camera, controls, canvas, model: null, framed: false };
   viewers.push(v);
   resize(v);
   return v;
 }
 
 function resize(v) {
-  const w = v.canvas.clientWidth || 300;
-  const h = v.canvas.clientHeight || 260;
+  const w = v.canvas.clientWidth || 320;
+  const h = v.canvas.clientHeight || 280;
   v.renderer.setSize(w, h, false);
   v.camera.aspect = w / h;
   v.camera.updateProjectionMatrix();
 }
 
-function loadModel(v, url, color) {
+function loadModel(v, url, { color = null, vertexColors = false } = {}) {
   loader.load(url, (gltf) => {
     if (v.model) v.scene.remove(v.model);
     const root = gltf.scene;
     root.traverse((o) => {
       if (o.isMesh) {
         o.material = new THREE.MeshStandardMaterial({
-          color, metalness: 0.1, roughness: 0.75, side: THREE.DoubleSide,
+          color: vertexColors ? 0xffffff : color,
+          vertexColors,
+          metalness: 0.05,
+          roughness: 0.7,
+          side: THREE.DoubleSide,
+          flatShading: false,
         });
       }
     });
-    // Center & frame the model.
     const box = new THREE.Box3().setFromObject(root);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     root.position.sub(center);
     v.model = root;
     v.scene.add(root);
-    const radius = Math.max(size.x, size.y, size.z);
-    v.camera.position.set(radius * 1.1, radius * 0.4, radius * 1.6);
-    v.controls.target.set(0, 0, 0);
-    v.controls.update();
+    if (!v.framed) {
+      const radius = Math.max(size.x, size.y, size.z);
+      v.camera.position.set(radius * 1.1, radius * 0.35, radius * 1.7);
+      v.controls.target.set(0, 0, 0);
+      v.controls.update();
+      v.framed = true;
+    }
   });
 }
 
@@ -69,7 +82,7 @@ function animate() {
 animate();
 window.addEventListener("resize", () => viewers.forEach(resize));
 
-const COLORS = { stability: 0xe07a5f, balanced: 0x81b29a, comfort: 0x6699cc };
+const COLORS = { stability: 0xe07a5f, balanced: 0x69b48f, comfort: 0x5b8def };
 
 function metricRow(label, value, sub) {
   return `<div class="m"><span>${label}</span><b>${value}</b>${sub || ""}</div>`;
@@ -81,10 +94,33 @@ function renderCard(c) {
     ? '<span class="badge ok">printable ✓</span>'
     : '<span class="badge no">not printable</span>';
   const snugPct = Math.round(m.snugness * 100);
+  const vmax = c.heatmap_vmax_mm;
+
   const card = document.createElement("div");
   card.className = "card " + (m.validation_passed ? "pass" : "fail");
   card.innerHTML = `
-    <canvas class="viewer"></canvas>
+    <div class="viewwrap">
+      <canvas class="viewer"></canvas>
+      <div class="viewtoggle">
+        <button data-v="heatmap" class="on">Heatmap</button>
+        <button data-v="socket">Socket</button>
+      </div>
+    </div>
+    <div class="legend">
+      <span>carve in <b>−${vmax}mm</b></span>
+      <span class="grad"></span>
+      <span><b>+${vmax}mm</b> relief out</span>
+    </div>
+    <div class="annot">
+      ${c.annotations
+        .map(
+          (a) =>
+            `<span class="chip ${a.action}">${a.zone}: ${
+              a.action === "carve" ? "carve" : "relief"
+            } ${a.mm}mm</span>`
+        )
+        .join("")}
+    </div>
     <h3>${c.title}</h3>
     <p class="sub">${c.summary}</p>
     <div class="metrics">
@@ -105,7 +141,8 @@ function renderCard(c) {
     </div>
     <div class="history hidden"></div>
   `;
-  // Wire the operation-history toggle.
+
+  // Operation history (Mimics/ScanIP-style).
   const hist = card.querySelector(".history");
   hist.innerHTML =
     "<ol>" +
@@ -120,9 +157,20 @@ function renderCard(c) {
   card.querySelector(".log").addEventListener("click", () =>
     hist.classList.toggle("hidden")
   );
-  // 3D viewer for this candidate.
+
+  // Viewer + heatmap/socket toggle (heatmap shown first).
   const v = makeViewer(card.querySelector(".viewer"));
-  loadModel(v, c.socket_glb, COLORS[c.key] || 0x9aa5b1);
+  loadModel(v, c.heatmap_glb, { vertexColors: true });
+  const toggle = card.querySelector(".viewtoggle");
+  toggle.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("button");
+    if (!btn) return;
+    toggle.querySelectorAll("button").forEach((b) => b.classList.remove("on"));
+    btn.classList.add("on");
+    if (btn.dataset.v === "socket")
+      loadModel(v, c.socket_glb, { color: COLORS[c.key] || 0x9aa5b1 });
+    else loadModel(v, c.heatmap_glb, { vertexColors: true });
+  });
   return card;
 }
 
@@ -131,7 +179,6 @@ async function run() {
   const status = $("#status");
   btn.disabled = true;
   status.textContent = "Sampling scan & auto-designing 3 candidates…";
-  // Reset viewers/cards.
   viewers.length = 0;
   $("#cards").innerHTML = "";
   try {
@@ -149,7 +196,7 @@ async function run() {
 
     const intents = data.intents.length
       ? data.intents.map((i) => `<span class="intent">${i}</span>`).join("")
-      : '<span class="intent">none detected — using neutral defaults</span>';
+      : '<span class="intent">none detected — neutral defaults</span>';
     const info = $("#scaninfo");
     info.classList.remove("hidden");
     info.innerHTML =
@@ -160,7 +207,7 @@ async function run() {
     const cards = $("#cards");
     for (const c of data.candidates) cards.appendChild(renderCard(c));
     viewers.forEach(resize);
-    status.textContent = "Done — drag any model to rotate.";
+    status.textContent = "Done — drag a model to rotate; toggle Heatmap/Socket.";
   } catch (e) {
     status.textContent = "Error: " + e.message;
   } finally {
