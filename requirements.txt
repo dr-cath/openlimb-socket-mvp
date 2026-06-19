@@ -1,0 +1,21 @@
+# Core geometry
+numpy==2.4.6
+scipy==1.17.1
+trimesh==4.12.2
+manifold3d==3.5.1        # robust boolean backend for trimesh
+networkx==3.6.1          # trimesh hole-filling / graph ops
+shapely==2.1.2           # trimesh planar slicing (trimline cut)
+rtree==1.4.1             # trimesh proximity queries
+scikit-image==0.26.0     # marching cubes (voxel offset fallback)
+
+# Validation / heatmap rendering
+matplotlib==3.11.0
+pillow==12.2.0
+
+# Web interface
+fastapi==0.137.2
+uvicorn==0.49.0
+python-multipart==0.0.32 # file upload support
+
+# Tests
+pytest==9.1.0

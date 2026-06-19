@@ -1,0 +1,33 @@
+OpenLimb Socket MVP
+Copyright (c) 2026 dr-cath
+
+This product is licensed under the MIT License (see LICENSE).
+
+-------------------------------------------------------------------------------
+Third-party data and attribution
+-------------------------------------------------------------------------------
+
+This product uses the OpenLimbTT transtibial residual limb shape model
+(Sunderland, Sobey, Bramley et al., 2025), from the repository
+abel-research/OpenLimbTT (https://github.com/abel-research/OpenLimbTT).
+
+  - OpenLimbTT *data* (mean mesh and PCA modes) is licensed CC-BY-SA-4.0.
+  - OpenLimbTT *code* is licensed MIT.
+
+The OpenLimbTT data is downloaded at runtime (see scripts/fetch_openlimb.py)
+and is NOT redistributed in this repository. Any limb or socket mesh generated
+from the OpenLimbTT model is a derivative of CC-BY-SA-4.0 data and, if
+distributed, must carry that licence and this attribution.
+
+Citation:
+  F. E. Sunderland, A. J. Sobey, J. L. Bramley, et al. (2025). OpenLimbTT, a
+  transtibial residual limb shape model for prosthetics simulation and design.
+  Data-Centric Engineering, 6:e39.
+
+The rectification parameterisation defaults are grounded in published clinical
+literature, principally:
+  - Dickinson et al. (2024), Frontiers in Rehabilitation Sciences, 5:1354069.
+  - Convery & Buis (2003), Prosthetics and Orthotics International, 27(3).
+
+Full provenance, licensing notes, and the exact assumptions behind the default
+values are documented in docs/SOURCES.md.

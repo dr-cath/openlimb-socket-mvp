@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenLimb Socket MVP — parametric rectification</title>
+<link rel="stylesheet" href="/static/style.css" />
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<header>
+  <h1>OpenLimb Socket MVP</h1>
+  <span class="tag">parametric transtibial rectification engine · research prototype</span>
+</header>
+
+<div id="app">
+  <aside id="panel">
+    <section>
+      <h2>1 · Limb</h2>
+      <div class="row">
+        <button data-shape="mean" class="sample">Mean limb</button>
+        <button data-shape="random" class="sample">Random</button>
+        <button data-shape="synthetic" class="sample">Synthetic</button>
+      </div>
+      <label class="file">Upload mesh (STL/PLY/OBJ)
+        <input type="file" id="upload" accept=".stl,.ply,.obj" />
+      </label>
+      <label class="chk"><input type="checkbox" id="is_left" checked /> Left limb (flips medial/lateral)</label>
+      <p id="limbinfo" class="muted">No limb loaded.</p>
+    </section>
+
+    <section>
+      <h2>2 · Clinical intent</h2>
+      <label>Socket philosophy
+        <select id="philosophy"><option>PTB</option><option>TSB</option></select>
+      </label>
+      <label>Snugness (overall volume reduction)
+        <input type="range" id="snugness" min="0" max="1" step="0.05" value="0.5" />
+        <span id="snugval" class="muted"></span>
+      </label>
+
+      <fieldset><legend>Relieve (pressure-sensitive)</legend>
+        <label class="chk"><input type="checkbox" id="relieve_fibular_head" checked /> Fibular head</label>
+        <label class="chk"><input type="checkbox" id="relieve_distal_tibial_end" checked /> Distal tibial end</label>
+        <label class="chk"><input type="checkbox" id="relieve_tibial_crest" checked /> Tibial crest</label>
+      </fieldset>
+
+      <fieldset><legend>Load (pressure-tolerant)</legend>
+        <label class="chk"><input type="checkbox" id="load_patellar_tendon" checked /> Patellar tendon</label>
+        <label class="chk"><input type="checkbox" id="load_posterior_calf" checked /> Posterior calf</label>
+        <label class="chk"><input type="checkbox" id="carve_paratibial" checked /> Paratibial flats</label>
+        <label class="chk"><input type="checkbox" id="carve_supracondylar" /> Supracondylar (suspension)</label>
+      </fieldset>
+
+      <fieldset><legend>Custom relief patch (atypical cases)</legend>
+        <label class="chk"><input type="checkbox" id="paint" /> Paint mode — click the limb to add a relief</label>
+        <div class="row">
+          <label>radius mm<input type="number" id="paint_radius" value="15" min="3" max="60" /></label>
+          <label>depth mm<input type="number" id="paint_depth" value="5" min="1" max="12" /></label>
+        </div>
+        <label class="chk"><input type="checkbox" id="paint_carve" /> carve in (instead of relieve out)</label>
+        <ul id="patches"></ul>
+        <button id="clearpatches" class="ghost">Clear patches</button>
+      </fieldset>
+
+      <fieldset><legend>Socket</legend>
+        <label>Trimline height (fraction)
+          <input type="range" id="trimline_height_frac" min="0.6" max="0.98" step="0.01" value="0.92" />
+        </label>
+        <label>Wall thickness mm
+          <input type="number" id="wall_thickness_mm" value="4" min="2" max="8" step="0.5" />
+        </label>
+      </fieldset>
+
+      <button id="generate" class="primary" disabled>Generate</button>
+    </section>
+
+    <section>
+      <h2>3 · Result</h2>
+      <div id="validation" class="muted">Generate to see validation.</div>
+      <div class="row">
+        <input type="text" id="exportname" value="approved_socket" />
+        <button id="export" class="primary" disabled>Approve &amp; export STL</button>
+      </div>
+      <div id="exportresult"></div>
+    </section>
+  </aside>
+
+  <main>
+    <div id="tabs">
+      <button data-view="limb" class="active">Limb</button>
+      <button data-view="rectified">Rectified positive</button>
+      <button data-view="socket">Socket</button>
+      <button data-view="heatmap">Displacement heatmap</button>
+    </div>
+    <div id="viewer"></div>
+    <div id="legend" class="muted">Heatmap: <span class="blue">blue = carved in</span> · <span class="red">red = relieved out</span></div>
+  </main>
+</div>
+
+<footer>
+  ⚠ Research/demo prototype only — <strong>NOT a cleared medical device</strong>.
+  No claims of clinical accuracy or safety. Built on OpenLimbTT (CC-BY-SA-4.0)
+  and published rectification rules; see docs/SOURCES.md &amp; docs/LIMITATIONS.md.
+</footer>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>
