@@ -84,6 +84,8 @@ window.addEventListener("resize", () => viewers.forEach(resize));
 
 const COLORS = { stability: 0xe07a5f, balanced: 0x69b48f, comfort: 0x5b8def };
 let sourceMap = {}; // key -> {label, doi, url}, populated per response
+let lastPrompt = "";
+let lastIsLeft = true;
 
 function metricRow(label, value, sub) {
   return `<div class="m"><span>${label}</span><b>${value}</b>${sub || ""}</div>`;
@@ -131,6 +133,7 @@ function renderCard(c) {
       <div class="viewtoggle">
         <button data-v="heatmap" class="on">Heatmap</button>
         <button data-v="pressure">Pressure*</button>
+        <button data-v="fea" class="feabtn" disabled title="Run FEA first">FEA†</button>
         <button data-v="socket">Socket</button>
       </div>
     </div>
@@ -180,9 +183,10 @@ function renderCard(c) {
     </details>
     <div class="actions">
       <a class="dl" href="${c.stl_url}" download>⬇ Download STL</a>
+      <button class="runfea" title="Run the in-process linear-elastic FEM (a few seconds)">▶ Run FEA†</button>
       <button class="log">Operation history (${c.processlog.entries.length})</button>
-      ${c.log_verified ? '<span class="vbadge" title="Every value in this history is computed from the model and checked against an independent recomputation in the test suite — not hand-written.">✓ computed from model</span>' : ""}
     </div>
+    <div class="fearesult hidden"></div>
     <div class="history hidden"></div>
   `;
 
@@ -215,7 +219,47 @@ function renderCard(c) {
       loadModel(v, c.socket_glb, { color: COLORS[c.key] || 0x9aa5b1 });
     else if (btn.dataset.v === "pressure")
       loadModel(v, c.pressure_glb, { vertexColors: true });
+    else if (btn.dataset.v === "fea" && c.fea_glb)
+      loadModel(v, c.fea_glb, { vertexColors: true });
     else loadModel(v, c.heatmap_glb, { vertexColors: true });
+  });
+
+  // Run FEA (in-process linear-elastic FEM) for this design.
+  const runBtn = card.querySelector(".runfea");
+  const feaRes = card.querySelector(".fearesult");
+  const feaToggle = card.querySelector(".feabtn");
+  runBtn.addEventListener("click", async () => {
+    runBtn.disabled = true;
+    runBtn.textContent = "Running FEA…";
+    try {
+      const r = await fetch("/api/fea", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: lastPrompt, key: c.key, is_left_limb: lastIsLeft }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      c.fea_glb = d.fea_glb;
+      const s = d.summary;
+      feaRes.classList.remove("hidden");
+      feaRes.innerHTML =
+        `<b>FEA† (linear-elastic, in-process):</b> median ` +
+        `${s.median_contact_kPa} kPa · p90 ${s.p90_contact_kPa} kPa · ` +
+        `loaded ${s.loaded_area_nodes_pct}% · ${s.n_tets.toLocaleString()} tets. ` +
+        `<span class="caveat">Peaks near bone are singularity-limited; small-strain proxy, not FEA-validated.</span>`;
+      feaToggle.disabled = false;
+      feaToggle.title = "FEA interface pressure";
+      // switch the viewer to the FEA result
+      card.querySelectorAll(".viewtoggle button").forEach((b) => b.classList.remove("on"));
+      feaToggle.classList.add("on");
+      loadModel(v, c.fea_glb, { vertexColors: true });
+      runBtn.textContent = "✓ FEA done";
+    } catch (e) {
+      feaRes.classList.remove("hidden");
+      feaRes.innerHTML = `<span class="caveat">FEA error: ${e.message}</span>`;
+      runBtn.textContent = "▶ Run FEA†";
+      runBtn.disabled = false;
+    }
   });
   return card;
 }
@@ -227,6 +271,8 @@ async function run() {
   status.textContent = "Sampling scan & auto-designing 3 candidates…";
   viewers.length = 0;
   $("#cards").innerHTML = "";
+  lastPrompt = $("#prompt").value;
+  lastIsLeft = $("#isleft").checked;
   try {
     const res = await fetch("/api/autodesign", {
       method: "POST",

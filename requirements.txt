@@ -17,6 +17,11 @@ fastapi==0.137.2
 uvicorn==0.49.0
 python-multipart==0.0.32 # file upload support
 
+# FEA (in-process linear-elastic interface-pressure estimate)
+tetgen==0.8.4            # tetrahedral meshing of the limb
+pyvista==0.48.4          # tetgen dependency / mesh utils
+fast-simplification==0.1.13  # surface decimation for coarse FE meshes
+
 # Tests
 pytest==9.1.0
 httpx==0.28.1            # FastAPI TestClient (endpoint tests)

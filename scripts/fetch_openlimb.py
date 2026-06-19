@@ -28,9 +28,11 @@ REPO = "https://github.com/abel-research/OpenLimbTT.git"
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEST = os.path.join(HERE, "data", "openlimb")
 
-# Files needed per version (mean size-normalised shape + PCA modes).
+# Files needed per version (mean size-normalised shape + PCA modes, plus the
+# skin + bone full-size surfaces used by the linear-FEM interface-pressure path).
 WANTED = ("Mean-Limb.stl", "Mean_Limb_Shape.stl", "Components16.npy",
-          "Components.npy", "Modes.npy", "LR.pkl")
+          "Components.npy", "Modes.npy", "LR.pkl",
+          "Mean-Skin-Full-Size.stl", "Mean-Bones-Full-Size.stl")
 
 
 def main() -> int:

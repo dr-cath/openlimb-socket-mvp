@@ -23,10 +23,28 @@ engine's outputs are not over-trusted.
   equilibrium and large deformation**, and is **not** a substitute for FEA or
   in-socket pressure measurement. Treat the kPa numbers as relative indicators
   of *where* pressure concentrates, not validated magnitudes.
-- **Roadmap — true simulator model (FEA):** a volumetric tetrahedral mesh of the
-  socket+limb with bone geometry (OpenLimbTT ships a bone STL), cited soft-tissue
-  material properties, a liner model and donning/stance boundary conditions,
-  validated against published interface pressures. Not implemented yet.
+## In-process FEA (linear-elastic interface-pressure estimate)
+- `socketcad/fea.py` **actually runs** a finite-element analysis (no external
+  solver): it tetrahedralises the OpenLimbTT limb, stiffens the **bone** elements
+  to a near-rigid core, imposes the socket's rectification as an inward skin
+  displacement, and solves linear elasticity (scipy sparse) for the reaction
+  **interface pressure**. Run it with `python scripts/run_fea.py`.
+- **This is a linear, small-strain proxy.** Honest scope:
+  - **No** hyperelasticity, **no** frictional contact mechanics, **no** liner,
+    **no** large deformation, **no** muscle/fat/skin layering.
+  - Material constants are **literature-level placeholders** (soft tissue
+    E≈0.2 MPa, ν 0.40; bone E≈100 MPa).
+  - Robust statistics (**median / p90 of loaded nodes**) are meaningful and the
+    model **discriminates** designs sensibly (e.g. higher total-contact pressure
+    for high-volume-reduction TSB). The **raw peak near bone is a linear-FEM
+    singularity** (thin/zero tissue over bone, e.g. tibial crest), winsorised for
+    display and **not** a validated magnitude.
+  - Not validated against measured in-socket pressures. Do not treat the kPa
+    values as clinically accurate.
+- **Roadmap — rigorous simulator model (nonlinear contact FEA):** export the
+  socket+soft-tissue+bone with cited hyperelastic materials, a liner and
+  donning/stance boundary conditions to a solver deck (FEBio/Abaqus), validated
+  against published interface pressures. Not implemented yet.
 
 ## Landmarking / coordinate frame (heuristic)
 - The limb's long axis is found by PCA; the proximal end is identified as the

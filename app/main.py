@@ -263,6 +263,55 @@ async def api_generate(request: Request):
     }
 
 
+@app.post("/api/fea")
+async def api_fea(request: Request):
+    """Run the in-process linear-elastic FEM for one candidate design.
+
+    FEA needs the OpenLimbTT skin + bone geometry, so it runs on the OpenLimbTT
+    **mean** limb (rectified with the chosen design's spec). Returns a
+    pressure-coloured GLB of the rectified limb + robust pressure statistics.
+    """
+    import numpy as np
+    import matplotlib
+    from matplotlib.colors import Normalize
+    from scipy.spatial import cKDTree
+
+    from socketcad import fea
+    from socketcad.rectify import rectify
+
+    body = await request.json()
+    prompt = body.get("prompt", "")
+    key = body.get("key", "stability")
+
+    geom = fea.load_openlimb_fea_geometry()
+    if geom is None:
+        return JSONResponse(
+            {"error": "FEA needs the OpenLimbTT skin+bone surfaces. Run "
+                      "`python scripts/fetch_openlimb.py` first."}, status_code=400)
+    skin_solid, bone = geom
+
+    cands, _ = build_candidates(prompt, is_left_limb=bool(body.get("is_left_limb", True)))
+    cand = next((c for c in cands if c.key == key), cands[0])
+    limb, _ = sample_limb("mean")
+    rec = rectify(limb, cand.spec)
+    res = fea.run_limb_fea(skin_solid, bone, fea.interference_from_rectify(rec),
+                           target_faces=int(body.get("target_faces", 1800)))
+
+    # Map FEA skin-node pressure back onto the rectified limb and colour it.
+    tree = cKDTree(res.skin_points)
+    _, idx = tree.query(np.asarray(rec.rectified.vertices))
+    pv = res.pressure_kpa[idx]
+    vmax = float(np.percentile(pv, 95)) or 1.0
+    colors = (matplotlib.colormaps["inferno"](Normalize(0, vmax)(pv)) * 255).astype("uint8")
+    mesh = rec.rectified.copy()
+    mesh.visual.vertex_colors = colors
+    fea_glb = _serve_glb(mesh, f"cmp_{key}_fea")
+
+    _log("fea", {"key": key, "summary": res.summary()})
+    return {"key": key, "fea_glb": fea_glb, "vmax_kPa": round(vmax, 1),
+            "summary": res.summary()}
+
+
 @app.post("/api/export")
 async def api_export(request: Request):
     if SESSION.get("limb") is None:

@@ -149,6 +149,13 @@ button.primary:disabled { background: #b9bce0; cursor: progress; box-shadow: non
 .actions button.log { background: #fff; border: 1px solid #d8ddee; border-radius: 10px;
   padding: .5rem .75rem; cursor: pointer; font-size: .82rem; color: #444; }
 .actions button.log:hover { background: #f3f4ff; }
+.actions button.runfea { background: #1f2937; color: #fff; border: 0; border-radius: 10px;
+  padding: .5rem .8rem; cursor: pointer; font-size: .82rem; font-weight: 600; }
+.actions button.runfea:hover { background: #111827; }
+.actions button.runfea:disabled { background: #9aa5b1; cursor: progress; }
+.viewtoggle button.feabtn:disabled { opacity: .45; cursor: not-allowed; }
+.fearesult { padding: .4rem .95rem .2rem; font-size: .8rem; color: var(--ink); }
+.fearesult .caveat { color: var(--muted); font-size: .74rem; }
 
 .history { border-top: 1px dashed var(--line); padding: .5rem .95rem .8rem; font-size: .8rem;
   max-height: 280px; overflow: auto; background: #fbfcff; }
