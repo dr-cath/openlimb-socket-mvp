@@ -12,6 +12,22 @@ engine's outputs are not over-trusted.
   non-engineered placeholder**. It is not load-rated and must not be used to
   bear weight.
 
+## Design sense-check & interface-pressure proxy
+- The "Design sense-check" combines a **rule-based plausibility audit** (against
+  Dickinson et al. 2024 practice: load/offload direction, magnitude bounds,
+  volume-reduction band, distal-end offload, contact) with an **interface-pressure
+  proxy**.
+- The pressure proxy is a **Winkler elastic-foundation estimate**
+  (`pressure ≈ tissue_stiffness × interference_depth`) with an *illustrative*
+  stiffness constant. It **ignores shear, tissue layering, bone, liners, global
+  equilibrium and large deformation**, and is **not** a substitute for FEA or
+  in-socket pressure measurement. Treat the kPa numbers as relative indicators
+  of *where* pressure concentrates, not validated magnitudes.
+- **Roadmap — true simulator model (FEA):** a volumetric tetrahedral mesh of the
+  socket+limb with bone geometry (OpenLimbTT ships a bone STL), cited soft-tissue
+  material properties, a liner model and donning/stance boundary conditions,
+  validated against published interface pressures. Not implemented yet.
+
 ## Landmarking / coordinate frame (heuristic)
 - The limb's long axis is found by PCA; the proximal end is identified as the
   larger cross-section; the anterior direction is inferred as opposite the

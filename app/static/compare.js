@@ -89,6 +89,32 @@ function metricRow(label, value, sub) {
   return `<div class="m"><span>${label}</span><b>${value}</b>${sub || ""}</div>`;
 }
 
+const SC_ICON = { pass: "✓", warn: "!", fail: "✕" };
+
+function renderSenseCheck(sc) {
+  if (!sc) return "";
+  const p = sc.pressure || {};
+  const overall = sc.overall || "pass";
+  return (
+    `<details class="sense ${overall}">` +
+    `<summary>Design sense-check ` +
+    `<span class="scbadge ${overall}">${SC_ICON[overall]} ${overall.toUpperCase()}</span></summary>` +
+    "<ul>" +
+    sc.checks
+      .map(
+        (c) =>
+          `<li class="sc ${c.status}"><span class="i">${SC_ICON[c.status]}</span>` +
+          `<b>${c.name}:</b> ${c.detail}</li>`
+      )
+      .join("") +
+    "</ul>" +
+    `<p class="pnote">Interface-pressure proxy (Winkler, illustrative — not FEA): ` +
+    `peak ≈ ${p.peak_kPa} kPa, contact ${p.contact_area_pct}% of surface ` +
+    `@ ${p.stiffness_kPa_per_mm} kPa/mm. See the “Pressure*” view.</p>` +
+    "</details>"
+  );
+}
+
 function renderCard(c) {
   const m = c.metrics;
   const printable = m.printable
@@ -104,6 +130,7 @@ function renderCard(c) {
       <canvas class="viewer"></canvas>
       <div class="viewtoggle">
         <button data-v="heatmap" class="on">Heatmap</button>
+        <button data-v="pressure">Pressure*</button>
         <button data-v="socket">Socket</button>
       </div>
     </div>
@@ -132,6 +159,7 @@ function renderCard(c) {
       ${metricRow("Wall (mean)", (m.wall_mean_mm ?? "–") + " mm", `<div class="bar"><span style="width:${m.wall_in_tol_pct}%"></span></div>`)}
       ${metricRow("Socket volume", m.socket_volume_cm3 + " cm³", `<div>${printable}</div>`)}
     </div>
+    ${renderSenseCheck(c.sensecheck)}
     <div class="proscons">
       <ul class="pro">${c.pros.map((x) => `<li>${x}</li>`).join("")}</ul>
       <ul class="con">${c.cons.map((x) => `<li>${x}</li>`).join("")}</ul>
@@ -185,6 +213,8 @@ function renderCard(c) {
     btn.classList.add("on");
     if (btn.dataset.v === "socket")
       loadModel(v, c.socket_glb, { color: COLORS[c.key] || 0x9aa5b1 });
+    else if (btn.dataset.v === "pressure")
+      loadModel(v, c.pressure_glb, { vertexColors: true });
     else loadModel(v, c.heatmap_glb, { vertexColors: true });
   });
   return card;

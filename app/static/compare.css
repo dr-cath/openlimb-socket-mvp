@@ -121,6 +121,22 @@ button.primary:disabled { background: #b9bce0; cursor: progress; box-shadow: non
 .proscons .pro li::marker { content: "✓ "; color: #16a34a; }
 .proscons .con li::marker { content: "– "; color: #dc2626; }
 
+.sense { padding: .2rem .95rem .4rem; font-size: .8rem; }
+.sense summary { cursor: pointer; font-weight: 700; }
+.sense ul { margin: .4rem 0; padding-left: 0; list-style: none; }
+.sense li.sc { margin-bottom: .35rem; display: flex; gap: .4rem; align-items: baseline; }
+.sense li.sc .i { font-weight: 800; width: 1em; flex: none; text-align: center; }
+.sense li.sc.pass .i { color: #16a34a; }
+.sense li.sc.warn .i { color: #d97706; }
+.sense li.sc.fail .i { color: #dc2626; }
+.sense li.sc b { color: var(--ink); }
+.sense .pnote { color: var(--muted); font-size: .76rem; margin: .2rem 0 0; }
+.scbadge { display: inline-block; font-size: .7rem; font-weight: 800; border-radius: 999px;
+  padding: .08rem .5rem; vertical-align: middle; }
+.scbadge.pass { background: #dcfce7; color: #166534; }
+.scbadge.warn { background: #fef3c7; color: #92400e; }
+.scbadge.fail { background: #fee2e2; color: #991b1b; }
+
 .grounded { padding: .2rem .95rem .4rem; font-size: .8rem; }
 .grounded summary { cursor: pointer; font-weight: 600; color: #166534; }
 .grounded ul { margin: .3rem 0 0; padding-left: 1.1rem; color: var(--muted); }

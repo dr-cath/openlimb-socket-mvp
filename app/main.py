@@ -105,6 +105,8 @@ async def api_autodesign(request: Request):
 
     from socketcad.processlog import _ZONE_NAMES
     from socketcad.validate import colorize_displacement
+    from socketcad.sensecheck import (colorize_pressure, interface_pressure_proxy,
+                                      plausibility_audit, SenseCheck)
 
     results = []
     for cand in candidates:
@@ -119,6 +121,13 @@ async def api_autodesign(request: Request):
         heat_mesh = colorize_displacement(pr.rectify.rectified,
                                           pr.rectify.signed_normal_disp, vmax=vmax)
         heatmap_glb = _serve_glb(heat_mesh, f"cmp_{cand.key}_heatmap")
+
+        # Design sense-check: plausibility audit + interface-pressure proxy.
+        pressure, pstats = interface_pressure_proxy(pr.rectify)
+        sc = SenseCheck(checks=plausibility_audit(pr.rectify, cand.spec, pstats),
+                        pressure_stats=pstats)
+        pressure_glb = _serve_glb(colorize_pressure(pr.rectify, pressure),
+                                  f"cmp_{cand.key}_pressure")
 
         # Per-zone trade-off annotations (what was carved/relieved, in mm).
         annotations = [
@@ -148,6 +157,8 @@ async def api_autodesign(request: Request):
             "socket_glb": socket_glb,
             "heatmap_glb": heatmap_glb,
             "heatmap_vmax_mm": round(float(vmax), 1),
+            "pressure_glb": pressure_glb,
+            "sensecheck": sc.as_dict(),
             "annotations": annotations,
             "stl_url": "/files/" + os.path.basename(pr.exports["socket_stl"]),
             "metrics": {

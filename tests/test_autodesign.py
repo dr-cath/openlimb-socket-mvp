@@ -86,6 +86,22 @@ def test_random_sampling_is_diverse():
         assert np.linalg.norm(a.vertices - b.vertices, axis=1).mean() > 1.0
 
 
+def test_sense_check_flags_direction_and_pressure():
+    from socketcad.sensecheck import sense_check, interface_pressure_proxy
+    mesh, info = sample_limb("synthetic", seed=3)
+    cands, _ = build_candidates("standard", is_left_limb=True)
+    pr = run_pipeline(mesh, cands[0].spec, out_dir=None, export=False, make_heatmap=False)
+    sc = sense_check(pr.rectify, cands[0].spec)
+    names = {c.name: c.status for c in sc.checks}
+    # Default PTB design loads tolerant zones / offloads sensitive ones correctly.
+    assert names["Load/offload direction"] == "pass"
+    # Pressure proxy is non-negative and reports contact.
+    pressure, stats = interface_pressure_proxy(pr.rectify)
+    assert (pressure >= 0).all()
+    assert stats["peak_kPa"] >= 0 and 0 <= stats["contact_area_pct"] <= 100
+    assert sc.as_dict()["overall"] in {"pass", "warn", "fail"}
+
+
 def test_autodesign_endpoint_returns_three_designs(tmp_path):
     from fastapi.testclient import TestClient
     from app.main import app
